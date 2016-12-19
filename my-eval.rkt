@@ -8,24 +8,37 @@
       false))
 ;;
 (define (my-eval exp env)
-  (cond [(self-evaluating? exp) exp]
-        [(variable? exp) (lookup-variable-value exp env)]
-        [(quoted? exp) (text-of-quotation exp)]
-        [(assignment? exp) (eval-assignment exp env)]
-        [(definition? exp) (eval-definition exp env)]
-        [(if? exp) (eval-if exp env)]
-        [(lambda? exp)
-         (make-procedure (lambda-parameters exp)
-                         (lambda-body exp)
-                         env)]
-        [(begin? exp) (eval-sequence (begin-actions exp) env)]
-        [(cond? exp) (my-eval (cond->if exp) env)]
-        [(application? exp)
-         (my-apply (my-eval (operator exp) env)
-                   (list-of-values (operands exp) env))]
-        [else
-         (error "Unknown expression type -- EVAL" exp)]
-  ))
+  (cond
+    ; 自求值表达式
+    [(self-evaluating? exp) exp]
+    ; 变量
+    [(variable? exp) (lookup-variable-value exp env)]
+    ; 引号
+    [(quoted? exp) (text-of-quotation exp)]
+    ; 赋值
+    [(assignment? exp) (eval-assignment exp env)]
+    ; 定义
+    [(definition? exp) (eval-definition exp env)]
+    ; if
+    [(if? exp) (eval-if exp env)]
+    ; lambda
+    [(lambda? exp)
+     (make-procedure (lambda-parameters exp)
+                     (lambda-body exp)
+                     env)]
+    ; begin
+    [(begin? exp) (eval-sequence (begin-actions exp) env)]
+    ; cond
+    [(cond? exp) (my-eval (cond->if exp) env)]
+    ; 函数
+    [(application? exp)
+     (my-apply (my-eval (operator exp) env)
+               (list-of-values (operands exp) env))]
+    ; let 后增加的情况
+    [(let? exp) (my-eval (let->lambda exp) env)]
+    ; 其它情况，报错
+    [else
+     (error "Unknown expression type -- EVAL" exp)]))
 
 (define (my-apply procedure arguments)
   (cond [(primitive-procedure? procedure)    ;; 基本过程
@@ -38,6 +51,7 @@
                               (procedure-environment procedure)))]
         [else
          (error "Unknown procedure type -- APPLY" procedure)]))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 过程参数
@@ -221,6 +235,23 @@ begin
  <expn>)
 |#
 (define (let? exp) (tagged-list? exp 'let))
+
+; 取参数表: ((<var1> <exp1>)
+;           ...
+;          (<varn> <expn>))
+; 取所有的变量的表
+(define (let-vars exp)
+  (map (lambda (x) (car x))
+       (cadr exp)))
+; 取所有的赋值的表
+(define (let-vals exp)
+  (map (lambda (x) (cadr x))
+       (cadr exp)))
+
+; 转换为lambda 表达式的形式
+(define (let->lambda exp)
+;; TODO
+  )
 ;;....
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -407,7 +438,7 @@ begin
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 启动求值器
 ;(define the-global-environment (setup-environment))
-(driver-loop)
+;(driver-loop)
 
 
 
