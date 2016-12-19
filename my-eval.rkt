@@ -1,4 +1,5 @@
 #lang racket
+(require sicp)
 
 ;; 判断是否以 tag开头
 (define (tagged-list? exp tag)
@@ -6,7 +7,7 @@
       (eq? (car exp) tag)
       false))
 ;;
-(define (my-eval exp evn)
+(define (my-eval exp env)
   (cond [(self-evaluating? exp) exp]
         [(variable? exp) (lookup-variable-value exp env)]
         [(quoted? exp) (text-of-quotation exp)]
@@ -32,7 +33,7 @@
         [(compound-procedure? procedure)     ;; 组合过程
          (eval-sequence
           (procedure-body procedure)
-          (extend-environment (procedure-a\parameters procedure)
+          (extend-environment (procedure-parameters procedure)
                               arguments
                               (procedure-environment procedure)))]
         [else
@@ -41,7 +42,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 过程参数
 (define (list-of-values exps env)
-  (if (no-operands exps)
+  (if (no-operands? exps)
       '()
       (cons (my-eval (first-operand exps) env)
             (list-of-values (rest-operands exps) env))))
@@ -93,7 +94,7 @@
 (define (assignment? exp)
   (tagged-list? exp 'set!))
 (define (assignment-variable exp) (cadr exp))
-(define (assignemnt-value exp) (caddr exp))
+(define (assignment-value exp) (caddr exp))
 
 #|
 定义 (define <var> <value>)
@@ -150,7 +151,7 @@ begin
        ...
        <expn>)
 |#
-(define (begin? exp) (tagged-list? 'begin))
+(define (begin? exp) (tagged-list? exp 'begin))
 (define (begin-actions exp) (cdr exp))
 (define (last-exp? seq) (null? (cdr seq)))
 (define (first-exp seq) (car seq))
@@ -167,8 +168,9 @@ begin
 |#
 (define (application? exp) (pair? exp))
 (define (operator exp) (car exp))
-(define (operands exp) (cd exp))
+(define (operands exp) (cdr exp))
 (define (no-operands? ops) (null? ops))
+-
 (define (first-operand ops) (car ops))
 (define (rest-operands ops) (cdr ops))
 
@@ -185,7 +187,7 @@ begin
                0)
         (- x)))
 |#
-(define (cond? exp) (tagged-list? 'cond))
+(define (cond? exp) (tagged-list? exp 'cond))
 (define (cond-clauses exp) (cdr exp))
 (define (cond-else-clause? clause)
   (eq? (cond-predicate clause) 'else))
@@ -218,7 +220,7 @@ begin
  ...
  <expn>)
 |#
-(define (let? exp) (tagged-list? 'let))
+(define (let? exp) (tagged-list? exp 'let))
 ;;....
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -234,10 +236,12 @@ begin
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 过程的表示
 ;; 假设己有如下基本过程
+#|
 (define (apply-primitive-procedure proc args)
   '()) ;; todo
-(define (primitive_procedure? proc)
+(define (primitive-procedure? proc)
   '()) ;; todo
+;|#
 
 (define (make-procedure parameters body env)
   (list 'procedure parameters body env))
@@ -248,17 +252,155 @@ begin
 (define (procedure-environment p) (cadddr p))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; 对环竟的操作
-()
+;; 对环境的操作
+(define (enclosing-environment env) (cdr env))
+(define (first-frame env) (car env))
+(define the-empty-environment '())
+(define (make-frame variables values)
+  (cons variables values))
+(define (frame-variables frame) (car frame))
+(define (frame-values frame) (cdr frame))
+(define (add-binding-to-frame! var val frame)
+  (set-car! frame (cons var (car frame)))
+  (set-cdr! frame (cons val (cdr frame))))
+#|
+框架由一个变画显示的表和一个值的表组成
+(cons (<var1> ... <varn>)
+      (<val1> ... <valn>))
+|#
+(define (extend-environment vars vals base-env)
+  (if (= (length vars) (length vals))
+      (cons (make-frame vars vals) base-env)
+      (if (< (length vars) (length vals))
+          (error "Too many arguments supplied" vars vals)
+          (error "too few arguments suppled" vars vals))))
+;; 在框架中查找变量
+(define (lookup-variable-value var env)
+  ; 定义函数
+  (define (env-loop env)
+    ;; 定义 scan
+    (define (scan vars vals)
+      (cond [(null? vars) (env-loop (enclosing-environment env))]
+            [(eq? var (car vars)) (car vals)]
+            [else
+             (scan (cdr vars) (cdr vals))]))
+    ;; 调用 scan
+    (if (eq? env the-empty-environment)
+        (error "Unbound variable" var)
+        (let ([frame (first-frame env)])
+          (scan (frame-variables frame)
+                (frame-values frame)))))
+  ; 调用
+  (env-loop env))
 
+;; 在框架中设置变量的值
+(define (set-variable-value! var val env)
+  ; 定义函数
+  (define (env-loop env)
+    ;; 定义 scan
+    (define (scan vars vals)
+      (cond [(null? vars)
+             (env-loop (enclosing-environment env))]
+            [(eq? var (car vars)) (set-car! vals val)]
+            [else
+             (scan (cdr vars) (cdr vals))]))
+    ;; 调用 scan
+    (if (eq? env the-empty-environment)
+        (error "Unbound variable -- SET" var)
+        (let ([frame (first-frame env)])
+          (scan (frame-variables frame)
+                (frame-values frame)))))
+  ; 调用
+  (env-loop env))
+;; 定义一个变量:在第一个框架里寻找该变量的约束，七到则修改；如果不存在，就在第一个框架中增加该约束
+(define (define-variable! var val env)
+  (let [[frame (first-frame env)]]
+    (define (scan vars vals)
+      (cond [(null? vars)
+             (add-binding-to-frame! var val frame)]
+            [(eq? var (car vars))
+             (set-car! vals val)]
+            [else (scan (cdr vars) (cdr vals))]))
+    (scan (frame-variables frame)
+          (frame-values frame))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#|
+基本过程的具体形式不重要，只要apply能识别它们，并能通过过程primitive-procedure去应用它们
+;|# 
+(define (primitive-procedure? proc)
+  (tagged-list? proc 'primitive))
 
+(define (primitive-impletation proc) (cadr proc))
 
+(define primitive-procedures
+  (list (list 'car car)
+        (list 'cdr cdr)
+        (list 'cons cons)
+        (list 'null? null?)
+        (list '+ +)))
 
+(define (primitive-procedure-names)
+  (map car primitive-procedures))
 
+(define (primitive-procedure-objects)
+  (map (lambda (proc) (list 'primitive (cadr proc)))
+       primitive-procedures))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 作为程序运行这个求值器
+(define (setup-environment)
+  (let ((initial-env
+         (extend-environment (primitive-procedure-names)
+                             (primitive-procedure-objects)
+                             the-empty-environment)))
+    ;; 定义变量表示直/假
+    (define-variable! 'true true initial-env)
+    (define-variable! 'false false initial-env)
+    ;; 返回扩展之后的环境
+    initial-env))
+(define the-global-environment (setup-environment))
 
+(define (apply-primitive-procedure proc args)
+  ;(apply-in-underlying-scheme
+  (apply
+   (primitive-impletation proc) args))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#|
+提供一个驱动循环,来运行这个求值器
+;|#
+(define input-prompt  ";;; M-Eval  input<")
+(define output-prompt ";;; M-Eval output>")
+
+(define (driver-loop)
+  (prompt-for-input input-prompt)
+  (let ((input (read)))
+    (let ((output (my-eval input the-global-environment)))
+      (announce-output output-prompt)
+      (user-print output)))
+  (driver-loop))
+
+(define (prompt-for-input string)
+  (newline) (newline) (display string) (newline))
+(define (announce-output string)
+  (newline)
+  (display string)
+  (newline))
+;; 为了避免打印混合过程的环境部分（可能是一个非常长的表）
+(define (user-print object)
+  (if (compound-procedure? object)
+      (display (list 'compound-procedure
+                    (procedure-parameters object)
+                    (procedure-body object)
+                    '<procedure-env>))
+      (display object)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 启动求值器
+;(define the-global-environment (setup-environment))
+(driver-loop)
 
 
 
