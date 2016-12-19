@@ -30,12 +30,12 @@
     [(begin? exp) (eval-sequence (begin-actions exp) env)]
     ; cond
     [(cond? exp) (my-eval (cond->if exp) env)]
+    ; let 后增加的情况
+    [(let? exp) (my-eval (let->lambda exp) env)]
     ; 函数
     [(application? exp)
      (my-apply (my-eval (operator exp) env)
                (list-of-values (operands exp) env))]
-    ; let 后增加的情况
-    [(let? exp) (my-eval (let->lambda exp) env)]
     ; 其它情况，报错
     [else
      (error "Unknown expression type -- EVAL" exp)]))
@@ -247,11 +247,17 @@ begin
 (define (let-vals exp)
   (map (lambda (x) (cadr x))
        (cadr exp)))
+(define (let-body exp)
+  (cddr exp))
 
 ; 转换为lambda 表达式的形式
 (define (let->lambda exp)
-;; TODO
-  )
+  (cons (make-lambda (let-vars exp)
+                     (let-body exp))
+        (let-vals exp)))
+
+
+
 ;;....
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -268,10 +274,8 @@ begin
 ;; 过程的表示
 ;; 假设己有如下基本过程
 #|
-(define (apply-primitive-procedure proc args)
-  '()) ;; todo
-(define (primitive-procedure? proc)
-  '()) ;; todo
+(apply-primitive-procedure proc args)
+(primitive-procedure? proc)
 ;|#
 
 (define (make-procedure parameters body env)
@@ -437,8 +441,10 @@ begin
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 启动求值器
-;(define the-global-environment (setup-environment))
-;(driver-loop)
+#|
+(define the-global-environment (setup-environment))
+;|#
+(driver-loop)
 
 
 
