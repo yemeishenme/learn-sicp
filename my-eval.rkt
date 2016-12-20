@@ -6,6 +6,9 @@
   (if (pair? exp)
       (eq? (car exp) tag)
       false))
+
+
+#|
 ;;
 (define (my-eval exp env)
   (cond
@@ -39,6 +42,7 @@
     ; 其它情况，报错
     [else
      (error "Unknown expression type -- EVAL" exp)]))
+;|#
 
 (define (my-apply procedure arguments)
   (cond [(primitive-procedure? procedure)    ;; 基本过程
@@ -373,7 +377,11 @@ begin
         (list 'cdr cdr)
         (list 'cons cons)
         (list 'null? null?)
-        (list '+ +)))
+        (list '+ +)
+        (list '- -)
+        (list '* *)
+        (list '/ /)
+        ))
 
 (define (primitive-procedure-names)
   (map car primitive-procedures))
@@ -437,6 +445,45 @@ begin
                     (procedure-body object)
                     '<procedure-env>))
       (display object)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define type-process
+  (list
+   (list self-evaluating? (lambda (exp env) exp))
+   (list variable?        lookup-variable-value)
+   (list quoted?          (lambda (exp env) (text-of-quotation exp)))
+   (list assignment?      eval-assignment)
+   (list definition?      eval-definition)
+   (list if?              eval-if)
+   (list lambda?          (lambda (exp env)
+                            (make-procedure (lambda-parameters exp)
+                                            (lambda-body exp)
+                                            env)))
+   (list begin?           (lambda (exp env)
+                            (eval-sequence (begin-actions exp) env)))
+
+   ; cond
+   (list cond?            (lambda (exp env) (my-eval (cond->if exp) env)))
+   (list let?             (lambda (exp env) (my-eval (let->lambda exp) env)))
+   (list application?     (lambda (exp env)
+                            (my-apply
+                             (my-eval (operator exp) env)
+                             (list-of-values (operands exp) env))))
+   ))
+
+;   [else
+;    (error "Unknown expression type -- EVAL" exp)]))
+(define (my-eval exp env)
+  (define (loop a-list)
+    (if (null? a-list)
+        (error "Unknown expression type -- EVAL" exp)
+        (let ((pred? (caar a-list))
+              (process (cadar a-list)))
+          (if (pred? exp)
+              (process exp env)
+              (loop (cdr a-list))))))
+  (loop type-process))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
