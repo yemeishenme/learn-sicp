@@ -1,21 +1,27 @@
 #lang racket
 (require sicp)
+#|
 
+;|#
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;辅助函数
 ;; 判断是否以 tag开头
 (define (tagged-list? exp tag)
   (if (pair? exp)
       (eq? (car exp) tag)
       false))
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;4.1.7 语法分析与执行分离
 (define (my-eval exp env)
+  ;; 分析之后返回一个以 环境为参数的的lambda
   ((analyze exp) env))
 
+;; 分析函数
 ;#|
 ;;
-(define (analyze exp env)
+(define (analyze exp)
   (cond
     ; 自求值表达式
     [(self-evaluating? exp) (analyze-self-evaluating exp)]
@@ -51,7 +57,7 @@
   (let ((qval (text-of-quotation exp)))
     (lambda (env) qval)))
 (define (analyze-variable exp)
-  (lambda (env) (lookup-variable-value exp) env))
+  (lambda (env) (lookup-variable-value exp env)))
 (define (analyze-assignment exp)
   (let [(var (assignment-variable exp))
         (vproc (analyze (assignment-value exp)))]
@@ -82,7 +88,7 @@
   (define (sequentially proc1 proc2)
     (lambda (env) (proc1 env) (proc2 env)))
   (define (loop first-proc rest-procs)
-    (if (null? rest-proc)
+    (if (null? rest-procs)
         first-proc
         (loop (sequentially first-proc (car rest-procs))
               (cdr rest-procs))))
@@ -432,7 +438,7 @@ begin
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 #|
 基本过程的具体形式不重要，只要apply能识别它们，并能通过过程primitive-procedure去应用它们
-;|# 
+;|#
 (define (primitive-procedure? proc)
   (tagged-list? proc 'primitive))
 
@@ -492,7 +498,7 @@ begin
              (user-print input)
              (newline)
              (my-eval input the-global-environment))))
-          
+
       (announce-output output-prompt)
       (user-print output)))
   (driver-loop))
@@ -562,6 +568,3 @@ begin
 (define the-global-environment (setup-environment))
 ;|#
 (driver-loop)
-
-
-
