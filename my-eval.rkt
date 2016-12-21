@@ -8,41 +8,107 @@
       false))
 
 
-#|
-;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;4.1.7 语法分析与执行分离
 (define (my-eval exp env)
+  ((analyze exp) env))
+
+;#|
+;;
+(define (analyze exp env)
   (cond
     ; 自求值表达式
-    [(self-evaluating? exp) exp]
+    [(self-evaluating? exp) (analyze-self-evaluating exp)]
     ; 变量
-    [(variable? exp) (lookup-variable-value exp env)]
+    [(variable? exp) (analyze-variable exp)]
     ; 引号
-    [(quoted? exp) (text-of-quotation exp)]
+    [(quoted? exp) (analyze-quoted exp)]
     ; 赋值
-    [(assignment? exp) (eval-assignment exp env)]
+    [(assignment? exp) (analyze-assignment exp)]
     ; 定义
-    [(definition? exp) (eval-definition exp env)]
+    [(definition? exp) (analyze-definition exp)]
     ; if
-    [(if? exp) (eval-if exp env)]
+    [(if? exp) (analyze-if exp)]
     ; lambda
-    [(lambda? exp)
-     (make-procedure (lambda-parameters exp)
-                     (lambda-body exp)
-                     env)]
+    [(lambda? exp) (analyze-lambda exp)]
     ; begin
-    [(begin? exp) (eval-sequence (begin-actions exp) env)]
+    [(begin? exp) (analyze-sequence (begin-actions exp))]
     ; cond
-    [(cond? exp) (my-eval (cond->if exp) env)]
+    [(cond? exp) (analyze (cond->if exp))]
     ; let 后增加的情况
-    [(let? exp) (my-eval (let->lambda exp) env)]
+    [(let? exp) (analyze (let->lambda exp))]
     ; 函数
-    [(application? exp)
-     (my-apply (my-eval (operator exp) env)
-               (list-of-values (operands exp) env))]
+    [(application? exp) (analyze-application exp)]
     ; 其它情况，报错
     [else
-     (error "Unknown expression type -- EVAL" exp)]))
+     (error "Unknown expression type -- ANALYZE" exp)]))
 ;|#
+
+;;;;;; 以下是语法分析部分
+(define (analyze-self-evaluating exp)
+  (lambda (env) exp))
+(define (analyze-quoted exp)
+  (let ((qval (text-of-quotation exp)))
+    (lambda (env) qval)))
+(define (analyze-variable exp)
+  (lambda (env) (lookup-variable-value exp) env))
+(define (analyze-assignment exp)
+  (let [(var (assignment-variable exp))
+        (vproc (analyze (assignment-value exp)))]
+    (lambda (env)
+      (set-variable-value! var (vproc env) env)
+      'ok)))
+(define (analyze-definition exp)
+  (let [(var (definition-variable exp))
+        (vproc (analyze (definition-value exp)))]
+    (lambda (env)
+      (define-variable! var (vproc env) env)
+      'ok)))
+(define (analyze-if exp)
+  (let ((pproc (analyze (if-predicate exp)))
+        (cproc (analyze (if-consequent exp)))
+        (aproc (analyze (if-alternative exp))))
+    (lambda (env)
+      (if (true? (pproc env))
+          (cproc env)
+          (aproc env)))))
+
+(define (analyze-lambda exp)
+  (let ((vars (lambda-parameters exp))
+        (bproc (analyze-sequence (lambda-body exp))))
+    (lambda (env) (make-procedure vars bproc env))))
+
+(define (analyze-sequence exps)
+  (define (sequentially proc1 proc2)
+    (lambda (env) (proc1 env) (proc2 env)))
+  (define (loop first-proc rest-procs)
+    (if (null? rest-proc)
+        first-proc
+        (loop (sequentially first-proc (car rest-procs))
+              (cdr rest-procs))))
+  (let ((procs (map analyze exps)))
+    (if (null? procs)
+        (error "Empty sequence -- AAALYZE"))
+    (loop (car procs) (cdr procs))))
+(define (analyze-application exp)
+  (let ((fproc (analyze (operator exp)))
+        (aprocs (map analyze (operands exp))))
+    (lambda (env)
+      (execute-application (fproc env)
+                           (map (lambda (aproc) (aproc env))
+                                aprocs)))))
+(define (execute-application proc args)
+  (cond [(primitive-procedure? proc)
+         (apply-primitive-procedure proc args)]
+        [(compound-procedure? proc)
+         ((procedure-body proc)
+          (extend-environment (procedure-parameters proc)
+                              args
+                              (procedure-environment proc)))]
+        [else
+         (error "Unknown procedure type -- EXECUTE-APPLICATION" proc)]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (my-apply procedure arguments)
   (cond [(primitive-procedure? procedure)    ;; 基本过程
@@ -447,6 +513,7 @@ begin
       (display object)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#|
 (define type-process
   (list
    (list self-evaluating? (lambda (exp env) exp))
@@ -483,6 +550,9 @@ begin
               (process exp env)
               (loop (cdr a-list))))))
   (loop type-process))
+;|#
+
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
