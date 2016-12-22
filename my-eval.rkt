@@ -13,14 +13,13 @@
       false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#|
 ;4.1.7 语法分析与执行分离
 (define (my-eval exp env)
   ;; 分析之后返回一个以 环境为参数的的lambda
   ((analyze exp) env))
 
 ;; 分析函数
-;#|
-;;
 (define (analyze exp)
   (cond
     ; 自求值表达式
@@ -48,7 +47,6 @@
     ; 其它情况，报错
     [else
      (error "Unknown expression type -- ANALYZE" exp)]))
-;|#
 
 ;;;;;; 以下是语法分析部分
 (define (analyze-self-evaluating exp)
@@ -114,6 +112,7 @@
         [else
          (error "Unknown procedure type -- EXECUTE-APPLICATION" proc)]))
 
+|#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (my-apply procedure arguments)
@@ -453,6 +452,7 @@ begin
         (list '- -)
         (list '* *)
         (list '/ /)
+        (list '= =)
         ))
 
 (define (primitive-procedure-names)
@@ -519,7 +519,6 @@ begin
       (display object)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#|
 (define type-process
   (list
    (list self-evaluating? (lambda (exp env) exp))
@@ -544,8 +543,6 @@ begin
                              (list-of-values (operands exp) env))))
    ))
 
-;   [else
-;    (error "Unknown expression type -- EVAL" exp)]))
 (define (my-eval exp env)
   (define (loop a-list)
     (if (null? a-list)
@@ -556,8 +553,6 @@ begin
               (process exp env)
               (loop (cdr a-list))))))
   (loop type-process))
-;|#
-
 
 
 
