@@ -26,20 +26,10 @@
   (let ((record (assoc key (cdr table)))) ; 查找对应的值
     (if record                            ; 如查找到
         (set-cdr! record value)           ; 设置其值为value
-        (set-cdr! table                   ; 将该键值对儿接在表的开头位置
+        (set-cdr! table                   ; 将该键值对儿接在表的末尾
                   (cons (cons key value) (cdr table)))))
   'ok)
 
-(define (insert-tail! key value table)
-  (let ((record (assoc key (cdr table)))) ; 查找对应的值
-    (if record                            ; 如查找到
-        (set-cdr! record value)           ; 设置其值为value
-        (if (<= (length table) 1)
-            (set-cdr! table
-                      (cons (cons key value)) (cdr table))
-            (append table                   ; 将该键值对儿接在表的开头位置
-                      (cons key value)))))
-  'ok)
 #|
 构造新表:创建一个包含符号*table*的表
 ;|#
