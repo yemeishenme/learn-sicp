@@ -5,19 +5,18 @@
   ((analyze exp) env))
 
 (define (analyze exp)
-  (cond [(self-evaluating? exp) (analyze-self-evaluating exp)]                                           ; 自求值语句，直接返回 表达式
-        [(quoted? exp) (analyze-quoted exp)]                ; ? 加引号的，返回被引内容
-        [(variable? exp) (analyze-variable exp)]            ; 变量， 直接在环境中查找变量的值
-        [(assignment? exp) (analyze-assignment exp)]        ; 赋值，递规计算
-        [(definition? exp) (analyze-definition exp)]        ; 定义，递规计算
-        [(if? exp) (analyze-if exp )]                       ; if表达式， 递规
-        [(lambda? exp) (analyze-lambda exp)]                ; lambda，转换成一个可应用的过程
-        [(begin? exp) (analyze-sequence (begin-actions exp))] ; begin， 求值一系列表达式，按照出现的顺序
-        [(cond? exp) (analyze (cond->if exp))]              ; cond 转换成 if 继续求值
-        [(application? exp) (analyze-application exp)]       ; 组合式, 求值运算符部分、运算对象部分，再调用 my-apply将参数传递给过程
+  (cond [(self-evaluating? exp) (analyze-self-evaluating exp)] ; 自求值语句，直接返回 表达式
+        [(quoted? exp) (analyze-quoted exp)]                   ; ? 加引号的，返回被引内容
+        [(variable? exp) (analyze-variable exp)]               ; 变量， 直接在环境中查找变量的值
+        [(assignment? exp) (analyze-assignment exp)]           ; 赋值，递规计算
+        [(definition? exp) (analyze-definition exp)]           ; 定义，递规计算
+        [(if? exp) (analyze-if exp )]                          ; if表达式， 递规
+        [(lambda? exp) (analyze-lambda exp)]                   ; lambda，转换成一个可应用的过程
+        [(begin? exp) (analyze-sequence (begin-actions exp))]  ; begin， 求值一系列表达式，按照出现的顺序
+        [(cond? exp) (analyze (cond->if exp))]                 ; cond 转换成 if 继续求值
+        [(application? exp) (analyze-application exp)]         ; 组合式, 求值运算符部分、运算对象部分，再调用 my-apply将参数传递给过程
         [else
-         (error "Unknown expression type -- EVAL" exp)]))   ; 符则返回错误
-
+         (error "Unknown expression type -- EVAL" exp)]))      ; 否则返回错误
 
 ;; 处理自求值表达式，它返回一个忽略环境参数的执行过程,直接返回相应的表达式
 (define (analyze-self-evaluating exp)
@@ -105,26 +104,6 @@
          (error
           "Unknown procedure type -- EXECUTE-APPLICATION" proc)]))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#|
-(define (eval exp env)  ; 参数: 表达式 环境
-  (cond [(self-evaluating? exp) exp]                                           ; 自求值语句，直接返回 表达式
-        [(variable? exp) (lookup-variable-value exp env)]                      ; 变量， 直接在环境中查找变量的值
-        [(quoted? exp) (text-of-quotation exp)]                                ; ? 加引号的，返回被引内容
-        [(assignment? exp) (eval-assignment exp env)]                          ; 赋值，递规计算
-        [(definition? exp) (eval-definition exp env)]                          ; 定义，递规计算
-        [(if? exp) (eval-if exp env)]                                          ; if表达式， 递规
-        [(lambda? exp) (make-procedure (lambda-parameters exp)                 ; lambda，转换成一个可应用的过程
-                                       (lambda-body exp)
-                                       env)]
-        [(begin? exp) (eval-sequence (begin-actions exp) env)]                 ; begin， 求值一系列表达式，按照出现的顺序
-        [(cond? exp) (eval (cond->if exp) env)]                                ; cond 转换成 if 继续求值
-        [(application? exp) (my_apply (eval (operator exp) env)                ; 组合式, 求值运算符部分、运算对象部分，再调用 my-apply将参数传递给过程
-                                      (list-of-values (operands exp) env))]
-        [else
-         (error "Unknown expression type -- EVAL" exp)]))                      ; 符则返回错误
-|#
-          
 ;; 定义新的 apply
 (define (my_apply procedure arguments) ;; 两个参数：过程 过程参数
   (cond [(primitive-procedure? procedure)                                      ; 基本过程？直接调用
@@ -550,6 +529,7 @@
         (list '- -)
         (list '* *)
         (list '/ /)
+        (list '= =)
         ))
 
 ;; 获取基本过程的名称表
