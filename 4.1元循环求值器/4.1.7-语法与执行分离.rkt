@@ -1,8 +1,5 @@
 #lang racket
 (require sicp)
-#|
-
-;|#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;辅助函数
@@ -11,9 +8,7 @@
   (if (pair? exp)
       (eq? (car exp) tag)
       false))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#|
 ;4.1.7 语法分析与执行分离
 (define (my-eval exp env)
   ;; 分析之后返回一个以 环境为参数的的lambda
@@ -111,8 +106,7 @@
                               (procedure-environment proc)))]
         [else
          (error "Unknown procedure type -- EXECUTE-APPLICATION" proc)]))
-
-|#
+;; 语法分析部结束
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (my-apply procedure arguments)
@@ -519,47 +513,5 @@ begin
       (display object)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define type-process
-  (list
-   (list self-evaluating? (lambda (exp env) exp))
-   (list variable?        lookup-variable-value)
-   (list quoted?          (lambda (exp env) (text-of-quotation exp)))
-   (list assignment?      eval-assignment)
-   (list definition?      eval-definition)
-   (list if?              eval-if)
-   (list lambda?          (lambda (exp env)
-                            (make-procedure (lambda-parameters exp)
-                                            (lambda-body exp)
-                                            env)))
-   (list begin?           (lambda (exp env)
-                            (eval-sequence (begin-actions exp) env)))
-
-   ; cond
-   (list cond?            (lambda (exp env) (my-eval (cond->if exp) env)))
-   (list let?             (lambda (exp env) (my-eval (let->lambda exp) env)))
-   (list application?     (lambda (exp env)
-                            (my-apply
-                             (my-eval (operator exp) env)
-                             (list-of-values (operands exp) env))))
-   ))
-
-(define (my-eval exp env)
-  (define (loop a-list)
-    (if (null? a-list)
-        (error "Unknown expression type -- EVAL" exp)
-        (let ((pred? (caar a-list))
-              (process (cadar a-list)))
-          (if (pred? exp)
-              (process exp env)
-              (loop (cdr a-list))))))
-  (loop type-process))
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 启动求值器
-#|
-(define the-global-environment (setup-environment))
-;|#
 (driver-loop)
