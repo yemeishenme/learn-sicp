@@ -6,6 +6,43 @@
   (if (pair? exp)
       (eq? (car exp) tag)
       false))
+
+#|
+;不好使呀
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define (cons x y)
+  (lambda (m) (m x y)))
+(define (car z)
+  (z (lambda (p q) p)))
+(define (cdr z)
+  (z (lambda (p q) q)))
+
+(define (list-ref items n)
+  (if (= n 0)
+      (car items)
+      (list-ref (cdr items) (- n 1))))
+(define (map proc items)
+  (if (null? items)
+      '()
+      (cons (proc (car items))
+            (map proc (cdr items)))))
+(define (scale-list items factory)
+  (map (lambda (x) (* x factory))
+       items))
+
+(define (add-lists list1 list2)
+  (cond [(null? list1) list2]
+        [(null? list2) list1]
+        [else
+         (cons (+ (car list1) (car list2))
+               (add-lists (cdr list) (cdr list2)))]))
+
+(define ones (cons 1 ones))
+(define integers (cons 1 (add-lists integers )))
+;|#
+
+
+
 ;;
 (define (my-eval exp env)
   (cond
@@ -33,13 +70,10 @@
     ; let 后增加的情况
     [(let? exp) (my-eval (let->lambda exp) env)]
     ; 函数
-    #|
     [(application? exp)
-     (my-apply (my-eval (operator exp) env)
-               (list-of-values (operands exp) env))]
-    |#
-    [(application? exp)
+     ; 对于函数表达式，求出操作符的实际值
      (my-apply (actual-value (operator exp) env)
+               ; 求出操作对象,作为操作符的参数
                (operands exp) env)]
     ; 其它情况，报错
     [else
@@ -84,14 +118,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (my-apply procedure arguments env)
-  (cond [(primitive-procedure? procedure)    ;; 基本过程
-         (apply-primitive-procedure
+  (cond [(primitive-procedure? procedure)       ;; 基本过程
+         (apply-primitive-procedure             ;; 直接调用这个基本过程
           procedure
-          (list-of-arg-values arguments env))] ;; 延迟求值
-        [(compound-procedure? procedure)     ;; 组合过程
-         (eval-sequence
-          (procedure-body procedure)
-          (extend-environment
+          (list-of-arg-values arguments env))]  ;; 立刻获取参数的值,因为现在要调用函数了
+
+        [(compound-procedure? procedure)        ;; 组合过程
+         (eval-sequence                         ;; 依次计算每个过程
+          (procedure-body procedure)            ;; 取得过程体
+          (extend-environment                   ;; 扩展环境
            (procedure-parameters procedure)
            (list-of-delayed-args arguments env) ;; 延迟求值
            (procedure-environment procedure)))]
@@ -99,12 +134,14 @@
          (error "Unknown procedure type -- APPLY" procedure)]))
 
 
+;; 获取"立刻求值"的参数列表
 (define (list-of-arg-values exps env)
   (if (no-operands? exps)
       '()
       (cons (actual-value (first-operand exps ) env)
             (list-of-arg-values (rest-operands exps)
                                 env))))
+;; 获取"延迟求值""的参数列表
 (define (list-of-delayed-args exps env)
   (if (no-operands? exps)
       '()
@@ -433,6 +470,7 @@ begin
         (list 'null? null?)
         (list '+ +) (list '- -) (list '* *) (list '/ /)
         (list '= =)
+        (list 'not not)
         ))
 
 (define (primitive-procedure-names)
@@ -499,6 +537,8 @@ begin
 (define the-global-environment (setup-environment))
 ;|#
 (driver-loop)
+
+
 
 
 
