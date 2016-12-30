@@ -9,8 +9,12 @@
 可能的返回结果：(1 a) (1 b) (2 a) (2 b) (3 a) (3 b)
 
 |#
+#|
+TODO  这个函数怎么实现啊
+;|#
+(define (amb ...))
 
-;; (amb) : 这一计算会流失败，且不会产生任何值
+;; (Amb) : 这一计算会流失败，且不会产生任何值
 ;; 某个特定谓词必须为真
 (define (require p)
   (if (not p) (amb)))
@@ -111,7 +115,6 @@
          (Lambda () 'failed))
 ;|#
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -128,12 +131,8 @@
   (if (pair? exp)
       (eq? (car exp) tag)
       false))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;4.1.7 语法分析与执行分离
-(define (my-eval exp env)
-  ;; 分析之后返回一个以 环境为参数的的lambda
-  ((analyze exp) env))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 分析函数
 (define (analyze exp)
   (cond
@@ -167,65 +166,133 @@
 
 ;;;;;; 以下是语法分析部分
 (define (analyze-self-evaluating exp)
-  (lambda (env) exp))
+  (lambda (env succeed fail)
+    (succeed exp fail)))
+
 (define (analyze-quoted exp)
   (let ((qval (text-of-quotation exp)))
-    (lambda (env) qval)))
+    (lambda (env succeed fail)
+      (succeed qval fail))))
+
 (define (analyze-variable exp)
-  (lambda (env) (lookup-variable-value exp env)))
+  (lambda (env succeed fail)
+    (succeed (lookup-variable-value exp env) fail)))
+
 (define (analyze-assignment exp)
   (let [(var (assignment-variable exp))
         (vproc (analyze (assignment-value exp)))]
-    (lambda (env)
-      (set-variable-value! var (vproc env) env)
-      'ok)))
+    (lambda (env succeed fail)
+      (vproc env
+             (lambda (val fail2)
+               (let [(old-value
+                      (lookup-variable-value var env))]
+                 (set-variable-value! var val env)
+                 (succeed 'ok
+                          (lambda ()
+                            (set-variable-value! var old-value
+                                                 env)
+                            (fail2)))))
+             fail))))
+
 (define (analyze-definition exp)
   (let [(var (definition-variable exp))
         (vproc (analyze (definition-value exp)))]
-    (lambda (env)
-      (define-variable! var (vproc env) env)
-      'ok)))
+    (lambda (env succeed fail)
+      (vproc env
+             (lambda (val fail2)
+               (define-variable! var val env)
+               (succeed 'ok fail2))
+             fail))))
+
 (define (analyze-if exp)
-  (let ((pproc (analyze (if-predicate exp)))
+  (let [(pproc (analyze (if-predicate exp)))
         (cproc (analyze (if-consequent exp)))
-        (aproc (analyze (if-alternative exp))))
-    (lambda (env)
-      (if (true? (pproc env))
-          (cproc env)
-          (aproc env)))))
+        (aproc (analyze (if-alternative exp)))]     ; 先取得各个部分
+    (lambda (env succeed fail)                      ; 函数必须是这种形式
+      (pproc env
+             (lambda (pred-value fail2)
+               (if (true? pred-value)
+                   (cproc env succeed fail2)
+                   (aproc env succeed fail2)))
+             fail))))
 
 (define (analyze-lambda exp)
-  (let ((vars (lambda-parameters exp))
-        (bproc (analyze-sequence (lambda-body exp))))
-    (lambda (env) (make-procedure vars bproc env))))
+  (let [(vars (lambda-parameters exp))
+        (bproc (analyze-sequence (lambda-body exp)))]
+    (lambda (env succeed fail)
+      (succeed (make-procedure vars bproc env)
+               fail))))
 
 (define (analyze-sequence exps)
-  (define (sequentially proc1 proc2)
-    (lambda (env) (proc1 env) (proc2 env)))
+  ;;
+  (define (sequentially a b)
+    (lambda (env succeed fail)
+      (a env
+         (lambda (a-value fail2)
+           (b env succeed fail2))
+         fail)))
+  ;;
   (define (loop first-proc rest-procs)
     (if (null? rest-procs)
         first-proc
         (loop (sequentially first-proc (car rest-procs))
               (cdr rest-procs))))
+  ;;
   (let ((procs (map analyze exps)))
     (if (null? procs)
         (error "Empty sequence -- AAALYZE"))
     (loop (car procs) (cdr procs))))
+
 (define (analyze-application exp)
   (let ((fproc (analyze (operator exp)))
         (aprocs (map analyze (operands exp))))
-    (lambda (env)
-      (execute-application (fproc env)
-                           (map (lambda (aproc) (aproc env))
-                                aprocs)))))
+    (lambda (env succeed fail)
+      (fproc env
+             (lambda (proc fail2)
+               (get-args aprocs
+                         env
+                         (lambda (args fail3)
+                           (execute-application
+                            proc args succeed fail3))
+                         fail2))
+             fail))))
+(define (get-args aprocs env succeed fail)
+  (if (null? aprocs)
+      (succeed '() faile)
+      ((car aprocs)
+       env
+       (lambda (arg fail2)
+         (get-args (cdr aprocs)
+                   env
+                   (lambda (args fail3)
+                     (succeed (cons arg args)
+                              fail3))
+                   fail2))
+       fail)))
+(define (analyze-amb exp)
+  (let [(cprocs (map analyze (amb-choices exp)))]
+    (lambda (env succeed fail)
+      (define (try-next choices)
+        (if (null? choices)
+            (fail)
+            ((car choices) env
+             succeed
+             (lambda ()
+               (try-next (cdr choices))))))
+      (try-next cprocs))))
+
+
 (define (execute-application proc args)
   (cond [(primitive-procedure? proc)
-         (apply-primitive-procedure proc args)]
+         (succeed (apply-primitive-procedure proc args)
+                  fail)]
         [(compound-procedure? proc)
          ((procedure-body proc)
           (extend-environment (procedure-parameters proc)
                               args
-                              (procedure-environment proc)))]
+                              (procedure-environment proc))
+          succeed
+          fail)]
         [else
          (error "Unknown procedure type -- EXECUTE-APPLICATION" proc)]))
 ;; 语法分析部结束
@@ -601,23 +668,31 @@ begin
 #|
 提供一个驱动循环,来运行这个求值器
 ;|#
-(define input-prompt  ";;; M-Eval  input<")
-(define output-prompt ";;; M-Eval output>")
+(define input-prompt  ";;; Amb-Eval input<")
+(define output-prompt ";;; Amb-Eval value:")
 
 (define (driver-loop)
-  (prompt-for-input input-prompt)
-  (let ((input (read)))
-    (let ((output
-           (begin
-             (newline)
-             (display "您输入的是：")
-             (user-print input)
-             (newline)
-             (my-eval input the-global-environment))))
-
-      (announce-output output-prompt)
-      (user-print output)))
-  (driver-loop))
+  (define (internal-loop try-again)
+    (prompt-for-input input-prompt))
+  (let [(input (read))]
+    (if (eq? input 'try-again)
+        (try-again)
+        (begin
+          (newline)
+          (display ";;; Starting a new problem ")
+          (ambeval input
+                   the-global-environment
+                   ;; 成功
+                   (lambda (val next-alternative)
+                     (announce-output output-prompt)
+                     (user-print val)
+                     (internal-loop next-alternative))
+                   ;; fail
+                   (lambda ()
+                     (announce-output
+                      ";;; There are no more values of ")
+                     (user-print input)
+                     (driver-loop)))))))
 
 (define (prompt-for-input string)
   (newline) (newline) (display string) (newline))
@@ -637,16 +712,3 @@ begin
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 启动求值器
 (driver-loop)
-
-
-
-
-
-
-
-
-
-
-
-
-
