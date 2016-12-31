@@ -1,4 +1,4 @@
-#lang racket
+ #lang racket
 (require sicp)
 
 #|
@@ -12,8 +12,9 @@
 #|
 TODO  这个函数怎么实现啊
 ;|#
-(define (amb ...))
+;(define (amb ...))
 
+#|
 ;; (Amb) : 这一计算会流失败，且不会产生任何值
 ;; 某个特定谓词必须为真
 (define (require p)
@@ -30,7 +31,7 @@ TODO  这个函数怎么实现啊
 ;; 任何一个>=n的数
 (define (an-integer-starting-from n)
   (amb n (an-integer-starting-from (+ n 1))))
-
+;|#
 
 #|
 ;; 练习4.35
@@ -51,10 +52,15 @@ TODO  这个函数怎么实现啊
 
 ;; 驱动循环
 ;; (prime-sum-pair '(1 3 5 8) '(20 35 10))
+#|
+;;; Amb-Eval input:
+(prime-sum-pair '(1 3 5 8) '(20 35 110))
+;;; Starting a new problem
+;;; Amb-Eval value:
+;|#
 
 #|
 4.3.2 非确定程序的实例
-;|#
 (define (multiple-dwelling)
   (let ((baker    (amb 1 2 3 4 5))
         (cooper   (amb 1 2 3 4 5))
@@ -76,6 +82,7 @@ TODO  这个函数怎么实现啊
           (list 'fletcher fletcher)
           (list 'miller miller)
           (list 'smith smith))))
+;|#
 ;; 求值表达式，将产生下面的结果:
 ;; ((baker 3) (cooper 2) (fletcher 4) (miller 5) (smith 1))
 
@@ -92,6 +99,7 @@ TODO  这个函数怎么实现啊
 
 ;; 求值器的结构
 (define (amb? exp) (tagged-list? exp 'amb));
+;; 取 后面的部分
 (define (amb-choices exp) (cdr exp))
 
 ;; 在分析里面增加这一句
@@ -101,6 +109,12 @@ TODO  这个函数怎么实现啊
 ;; 最高层的 ambeval
 (define (ambeval exp env succeed fail)
   ((analyze exp) env succeed fail))
+
+;; 最高层的 my-eval
+(define (my-eval exp env succeed fail)
+  ((analyze exp) env succeed fail))
+
+
 
 ;; 执行过程的一般行形式是
 #|
@@ -258,7 +272,7 @@ TODO  这个函数怎么实现啊
              fail))))
 (define (get-args aprocs env succeed fail)
   (if (null? aprocs)
-      (succeed '() faile)
+      (succeed '() fail)
       ((car aprocs)
        env
        (lambda (arg fail2)
@@ -269,20 +283,27 @@ TODO  这个函数怎么实现啊
                               fail3))
                    fail2))
        fail)))
+
+;; 分析 amb 表达式
 (define (analyze-amb exp)
-  (let [(cprocs (map analyze (amb-choices exp)))]
+  (let [(cprocs (map analyze (amb-choices exp)))] ; 获取表达式的列表
     (lambda (env succeed fail)
+      ;; 定义函数
       (define (try-next choices)
         (if (null? choices)
+            ; 为空
             (fail)
-            ((car choices) env
+            ;; 否则
+            ((car choices)  ;; 取得第一个
+             env
              succeed
              (lambda ()
                (try-next (cdr choices))))))
+      ;; 尝试表达式列表
       (try-next cprocs))))
 
 
-(define (execute-application proc args)
+(define (execute-application proc args succeed fail)
   (cond [(primitive-procedure? proc)
          (succeed (apply-primitive-procedure proc args)
                   fail)]
@@ -673,7 +694,7 @@ begin
 
 (define (driver-loop)
   (define (internal-loop try-again)
-    (prompt-for-input input-prompt))
+    (prompt-for-input input-prompt)
   (let [(input (read))]
     (if (eq? input 'try-again)
         (try-again)
@@ -689,10 +710,14 @@ begin
                      (internal-loop next-alternative))
                    ;; fail
                    (lambda ()
-                     (announce-output
-                      ";;; There are no more values of ")
+                     (announce-output ";;; There are no more values of ")
                      (user-print input)
                      (driver-loop)))))))
+  (internal-loop
+   (lambda ()
+     (newline)
+     (display ";;; There is no current problem")
+     (driver-loop))))
 
 (define (prompt-for-input string)
   (newline) (newline) (display string) (newline))
