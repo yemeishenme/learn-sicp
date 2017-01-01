@@ -1,0 +1,485 @@
+Welcome to Racket v6.5.
+﻿> 
+#<procedure:->
+
+
+;;; Amb-Eval input<
+(amb 1 2)
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+1
+
+;;; Amb-Eval input<
+try-again
+
+;;; Amb-Eval value:
+2
+
+;;; Amb-Eval input<
+try-again
+
+;;; There are no more values of 
+(amb 1 2)
+
+;;; Amb-Eval input<
+
+;;; Starting a new problem 
+; Unbound variable unquote
+
+﻿> ; application: not a procedure;
+;  expected a procedure that can be applied to arguments
+;   given: "d:/Git/learn-sicp/4.3 非确定性计算/amb.rkt"
+;   arguments...: [none]
+﻿> 2048
+﻿> ; t: undefined;
+;  cannot reference undefined identifier
+﻿> ; medium: undefined;
+;  cannot reference undefined identifier
+﻿> ; nil: undefined;
+;  cannot reference undefined identifier
+﻿> (display "")
+﻿> (display """""")
+; display: arity mismatch;
+;  the expected number of arguments does not match the given number
+;   expected: 1 to 2
+;   given: 3
+;   arguments...:
+;    ""
+;    ""
+;    ""
+﻿> ; [warning] optimizer: warning: optimizer detects procedure incorrectly applied to 3 arguments: display
+; [warning] optimizer: warning: optimizer detects procedure incorrectly applied to 3 arguments: display
+
+#<procedure:->
+
+
+;;; Amb-Eval input<
+input<
+
+;;; Starting a new problem 
+; Unbound variable input<
+
+﻿> 
+#<procedure:->
+
+
+;;; Amb-Eval input<
+(define (require exp) (if (not p) (amb)))
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+(define (an-element-of items) (require (not (null? items))) (amb (car items) (an-element-of (cdr items))))
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+(an-element-of '(a b c))
+
+;;; Starting a new problem 
+; Unbound variable not
+
+﻿> 
+#<procedure:->
+
+
+;;; Amb-Eval input<
+(define (require exp) (if (not (null? exp) (amb))))
+
+;;; Starting a new problem 
+; mcar: contract violation
+;   expected: mpair?
+;   given: '()
+
+﻿> 
+#<procedure:->
+
+
+;;; Amb-Eval input<
+(define (require p) (if (not p) (amb)))
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+(require (> 3 4))
+
+;;; Starting a new problem 
+; Unbound variable >
+
+﻿> 
+#<procedure:->
+
+
+;;; Amb-Eval input<
+(define (require p) (if (not p) (amb)))
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+(require (> 3 4))
+
+;;; Starting a new problem 
+;;; There are no more values of 
+(require (> 3 4))
+
+;;; Amb-Eval input<
+(require (< 3 4))
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+#f
+
+;;; Amb-Eval input<
+
+(define (an-element-of items)
+  ;; 如果空表，则会失败
+  (require (not (null? items)))
+  ;; 返回表里的第一个，或其它元素
+  (amb (car items) (an-element-of (cdr items))))
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+(an-element-of '(a b c))
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+a
+
+;;; Amb-Eval input<
+(an-element-of '(a b c))
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+a
+
+;;; Amb-Eval input<
+try-again
+
+;;; Amb-Eval value:
+b
+
+;;; Amb-Eval input<
+try-again
+
+;;; Amb-Eval value:
+c
+
+;;; Amb-Eval input<
+try-again
+
+;;; There are no more values of 
+(an-element-of (quote (a b c)))
+
+;;; Amb-Eval input<
+try-again
+
+;;; There is no current problem
+
+;;; Amb-Eval input<
+(define (an-integer-starting-from n))
+
+;;; Starting a new problem 
+; Empty sequence -- AAALYZE
+
+﻿>
+#<procedure:->
+
+
+;;; Amb-Eval input<
+(define (require p) (if (not p) (amb))
+  )
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+
+(define (multiple-dwelling)
+  (let ((baker    (amb 1 2 3 4 5))
+        (cooper   (amb 1 2 3 4 5))
+        (fletcher (amb 1 2 3 4 5))
+        (miller   (amb 1 2 3 4 5))
+        (smith    (amb 1 2 3 4 5)))
+    (require
+     (distinct? (list baker cooper fletcher miller smith)))
+
+    (require (not (= baker 5)))
+    (require (not (= cooper 1)))
+    (require (not (= fletcher 5)))
+    (require (not (= fletcher 1)))
+    (require (> miller cooper))
+    (require (not (= (abs (- smith fletcher)) 1)))
+    (require (not (= (abs (- fletcher cooper)) 1)))
+    (list (list 'baker baker)
+          (list 'cooper cooper )
+          (list 'fletcher fletcher)
+          (list 'miller miller)
+          (list 'smith smith))))
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+(multiple-dwelling)
+
+;;; Starting a new problem 
+; Unbound variable distinct?
+
+﻿> 
+#<procedure:->
+
+
+;;; Amb-Eval input<
+
+(define (require p)
+  (if (not p) (amb)))
+
+(define (multiple-dwelling)
+  (let ((baker    (amb 1 2 3 4 5))
+        (cooper   (amb 1 2 3 4 5))
+        (fletcher (amb 1 2 3 4 5))
+        (miller   (amb 1 2 3 4 5))
+        (smith    (amb 1 2 3 4 5)))
+    (require
+     (distinct? (list baker cooper fletcher miller smith)))
+
+    (require (not (= baker 5)))
+    (require (not (= cooper 1)))
+    (require (not (= fletcher 5)))
+    (require (not (= fletcher 1)))
+    (require (> miller cooper))
+    (require (not (= (abs (- smith fletcher)) 1)))
+    (require (not (= (abs (- fletcher cooper)) 1)))
+    (list (list 'baker baker)
+          (list 'cooper cooper )
+          (list 'fletcher fletcher)
+          (list 'miller miller)
+          (list 'smith smith))))
+
+(define (distinct? items)
+  (cond [(null? items) true]
+        [(null? (cdr items)) true]
+        [(member (car items) (cdr items)) false]
+        [else (distinct? (cdr items))]))
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+try-again
+
+;;; There are no more values of 
+(define (distinct? items) (cond ((null? items) true) ((null? (cdr items)) true) ((member (car items) (cdr items)) false) (else (distinct? (cdr items)))))
+
+;;; Amb-Eval input<
+(multiple-dwelling)
+
+;;; Starting a new problem 
+; Unbound variable list
+
+﻿> 
+#<procedure:->
+
+
+;;; Amb-Eval input<
+
+(define (require p)
+  (if (not p) (amb)))
+
+(define (multiple-dwelling)
+  (let ((baker    (amb 1 2 3 4 5))
+        (cooper   (amb 1 2 3 4 5))
+        (fletcher (amb 1 2 3 4 5))
+        (miller   (amb 1 2 3 4 5))
+        (smith    (amb 1 2 3 4 5)))
+    (require
+     (distinct? (list baker cooper fletcher miller smith)))
+
+    (require (not (= baker 5)))
+    (require (not (= cooper 1)))
+    (require (not (= fletcher 5)))
+    (require (not (= fletcher 1)))
+    (require (> miller cooper))
+    (require (not (= (abs (- smith fletcher)) 1)))
+    (require (not (= (abs (- fletcher cooper)) 1)))
+    (list (list 'baker baker)
+          (list 'cooper cooper )
+          (list 'fletcher fletcher)
+          (list 'miller miller)
+          (list 'smith smith))))
+
+(define (distinct? items)
+  (cond [(null? items) true]
+        [(null? (cdr items)) true]
+        [(member (car items) (cdr items)) false]
+        [else (distinct? (cdr items))]))
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+(multiple-dwelling)
+
+;;; Starting a new problem 
+; Unbound variable member
+
+﻿> 
+#<procedure:->
+
+
+;;; Amb-Eval input<
+
+(define (require p)
+  (if (not p) (amb)))
+
+(define (multiple-dwelling)
+  (let ((baker    (amb 1 2 3 4 5))
+        (cooper   (amb 1 2 3 4 5))
+        (fletcher (amb 1 2 3 4 5))
+        (miller   (amb 1 2 3 4 5))
+        (smith    (amb 1 2 3 4 5)))
+    (require
+     (distinct? (list baker cooper fletcher miller smith)))
+
+    (require (not (= baker 5)))
+    (require (not (= cooper 1)))
+    (require (not (= fletcher 5)))
+    (require (not (= fletcher 1)))
+    (require (> miller cooper))
+    (require (not (= (abs (- smith fletcher)) 1)))
+    (require (not (= (abs (- fletcher cooper)) 1)))
+    (list (list 'baker baker)
+          (list 'cooper cooper )
+          (list 'fletcher fletcher)
+          (list 'miller miller)
+          (list 'smith smith))))
+
+(define (distinct? items)
+  (cond [(null? items) true]
+        [(null? (cdr items)) true]
+        [(member (car items) (cdr items)) false]
+        [else (distinct? (cdr items))]))
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+(multiple-dwelling)
+
+;;; Starting a new problem 
+; Unbound variable abs
+
+﻿> 
+#<procedure:->
+
+
+;;; Amb-Eval input<
+
+(define (require p)
+  (if (not p) (amb)))
+
+(define (multiple-dwelling)
+  (let ((baker    (amb 1 2 3 4 5))
+        (cooper   (amb 1 2 3 4 5))
+        (fletcher (amb 1 2 3 4 5))
+        (miller   (amb 1 2 3 4 5))
+        (smith    (amb 1 2 3 4 5)))
+    (require
+     (distinct? (list baker cooper fletcher miller smith)))
+
+    (require (not (= baker 5)))
+    (require (not (= cooper 1)))
+    (require (not (= fletcher 5)))
+    (require (not (= fletcher 1)))
+    (require (> miller cooper))
+    (require (not (= (abs (- smith fletcher)) 1)))
+    (require (not (= (abs (- fletcher cooper)) 1)))
+    (list (list 'baker baker)
+          (list 'cooper cooper )
+          (list 'fletcher fletcher)
+          (list 'miller miller)
+          (list 'smith smith))))
+
+(define (distinct? items)
+  (cond [(null? items) true]
+        [(null? (cdr items)) true]
+        [(member (car items) (cdr items)) false]
+        [else (distinct? (cdr items))]))
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+ok
+
+;;; Amb-Eval input<
+(multiple-dwelling)
+
+;;; Starting a new problem 
+;;; Amb-Eval value:
+((baker 3) (cooper 2) (fletcher 4) (miller 5) (smith 1))
+
+;;; Amb-Eval input<
