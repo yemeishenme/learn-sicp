@@ -60,7 +60,12 @@ TODO  这个函数怎么实现啊
 ;|#
 
 #|
+
 4.3.2 非确定程序的实例
+
+(define (require p)
+  (if (not p) (amb)))
+
 (define (multiple-dwelling)
   (let ((baker    (amb 1 2 3 4 5))
         (cooper   (amb 1 2 3 4 5))
@@ -82,6 +87,13 @@ TODO  这个函数怎么实现啊
           (list 'fletcher fletcher)
           (list 'miller miller)
           (list 'smith smith))))
+
+(define (distinct? items)
+  (cond [(null? items) true]
+        [(null? (cdr items)) true]
+        [(member (car items) (cdr items)) false]
+        [else (distinct? (cdr items))]))
+
 ;|#
 ;; 求值表达式，将产生下面的结果:
 ;; ((baker 3) (cooper 2) (fletcher 4) (miller 5) (smith 1))
@@ -170,10 +182,10 @@ TODO  这个函数怎么实现啊
     [(cond? exp) (analyze (cond->if exp))]
     ; let 后增加的情况
     [(let? exp) (analyze (let->lambda exp))]
-    ; 函数
-    [(application? exp) (analyze-application exp)]
     ; 非确定性求值
     ((amb? exp) (analyze-amb exp))
+    ; 函数
+    [(application? exp) (analyze-application exp)]
     ; 其它情况，报错
     [else
      (error "Unknown expression type -- ANALYZE" exp)]))
@@ -650,6 +662,8 @@ begin
 (define primitive-procedures
   (list (list 'car car)
         (list 'cdr cdr)
+        (list 'list list)
+        (list 'member member)
         (list 'cons cons)
         (list 'null? null?)
         (list '+ +)
@@ -657,6 +671,15 @@ begin
         (list '* *)
         (list '/ /)
         (list '= =)
+        (list '> >)
+        (list '< <)
+        (list '>= >=)
+        (list '<= <=)
+        (list 'not not)
+        (list 'eq? eq?)
+        (list 'display display)
+        (list 'error error)
+        (list 'abs abs)
         ))
 
 (define (primitive-procedure-names)
@@ -695,24 +718,24 @@ begin
 (define (driver-loop)
   (define (internal-loop try-again)
     (prompt-for-input input-prompt)
-  (let [(input (read))]
-    (if (eq? input 'try-again)
-        (try-again)
-        (begin
-          (newline)
-          (display ";;; Starting a new problem ")
-          (ambeval input
-                   the-global-environment
-                   ;; 成功
-                   (lambda (val next-alternative)
-                     (announce-output output-prompt)
-                     (user-print val)
-                     (internal-loop next-alternative))
-                   ;; fail
-                   (lambda ()
-                     (announce-output ";;; There are no more values of ")
-                     (user-print input)
-                     (driver-loop)))))))
+    (let [(input (read))]
+      (if (eq? input 'try-again)
+          (try-again)
+          (begin
+            (newline)
+            (display ";;; Starting a new problem ")
+            (ambeval input
+                     the-global-environment
+                     ;; 成功
+                     (lambda (val next-alternative)
+                       (announce-output output-prompt)
+                       (user-print val)
+                       (internal-loop next-alternative))
+                     ;; fail
+                     (lambda ()
+                       (announce-output ";;; There are no more values of ")
+                       (user-print input)
+                       (driver-loop)))))))
   (internal-loop
    (lambda ()
      (newline)
@@ -721,6 +744,7 @@ begin
 
 (define (prompt-for-input string)
   (newline) (newline) (display string) (newline))
+
 (define (announce-output string)
   (newline)
   (display string)
