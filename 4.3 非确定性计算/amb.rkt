@@ -1,122 +1,10 @@
  #lang racket
 (require sicp)
 
-#|
-4.3.1 amb和搜索
-
-(amb <e1> <e2> ... <en>)
-    (list (amb 1 2 3) (amb 'a 'b)) =>
-可能的返回结果：(1 a) (1 b) (2 a) (2 b) (3 a) (3 b)
-
-|#
-#|
-TODO  这个函数怎么实现啊
-;|#
-;(define (amb ...))
-
-#|
-;; (Amb) : 这一计算会流失败，且不会产生任何值
-;; 某个特定谓词必须为真
-(define (require p)
-  (if (not p) (amb)))
-
-
-;;
-(define (an-element-of items)
-  ;; 如果空表，则会失败
-  (require (not (null? items)))
-  ;; 返回表里的第一个，或其它元素
-  (amb (car items) (an-element-of (cdr items))))
-
-;; 任何一个>=n的数
-(define (an-integer-starting-from n)
-  (amb n (an-integer-starting-from (+ n 1))))
-;|#
-
-#|
-;; 练习4.35
-;; 返回两个限界之间的一个整数
-(define (an-integer-between m n)
-  (require (< m n))
-  (amb m (an-integer-between (+ m 1) n)))
-;; 寻找毕达哥拉斯三元组
-(define (a-pythagorean-triple-between low high)
-  (let ((i (an-integer-between low high)))         ;; 可以用let*解决？
-    (let ((j (an-integer-between i high)))
-      (let ((k (an-integer-between j high)))
-        (require (= (+ (* i i) (* j j)) (* k k)))
-        (list i j k)))))
-;|#
-
-
-
-;; 驱动循环
-;; (prime-sum-pair '(1 3 5 8) '(20 35 10))
-#|
-;;; Amb-Eval input:
-(prime-sum-pair '(1 3 5 8) '(20 35 110))
-;;; Starting a new problem
-;;; Amb-Eval value:
-;|#
-
-#|
-
-4.3.2 非确定程序的实例
-
-(define (require p)
-  (if (not p) (amb)))
-
-(define (multiple-dwelling)
-  (let ((baker    (amb 1 2 3 4 5))
-        (cooper   (amb 1 2 3 4 5))
-        (fletcher (amb 1 2 3 4 5))
-        (miller   (amb 1 2 3 4 5))
-        (smith    (amb 1 2 3 4 5)))
-    (require
-     (distinct? (list baker cooper fletcher miller smith)))
-
-    (require (not (= baker 5)))
-    (require (not (= cooper 1)))
-    (require (not (= fletcher 5)))
-    (require (not (= fletcher 1)))
-    (require (> miller cooper))
-    (require (not (= (abs (- smith fletcher)) 1)))
-    (require (not (= (abs (- fletcher cooper)) 1)))
-    (list (list 'baker baker)
-          (list 'cooper cooper )
-          (list 'fletcher fletcher)
-          (list 'miller miller)
-          (list 'smith smith))))
-
-(define (distinct? items)
-  (cond [(null? items) true]
-        [(null? (cdr items)) true]
-        [(member (car items) (cdr items)) false]
-        [else (distinct? (cdr items))]))
-
-;|#
-;; 求值表达式，将产生下面的结果:
-;; ((baker 3) (cooper 2) (fletcher 4) (miller 5) (smith 1))
-
-#|
-自然语言的语法分析
-... ... 略
-;|#
-
-#|
-4.3.3 实现amb求值器
-;|#
-
-;; 执行过程和继续
-
 ;; 求值器的结构
 (define (amb? exp) (tagged-list? exp 'amb));
 ;; 取 后面的部分
 (define (amb-choices exp) (cdr exp))
-
-;; 在分析里面增加这一句
-;;((amb? exp) (analyze-amb exp))
-
 
 ;; 最高层的 ambeval
 (define (ambeval exp env succeed fail)
@@ -126,31 +14,6 @@ TODO  这个函数怎么实现啊
 (define (my-eval exp env succeed fail)
   ((analyze exp) env succeed fail))
 
-
-
-;; 执行过程的一般行形式是
-#|
-(lambda (env succeed fail)
-  ;; succeed is (lambda (value fail) ...)
-  ;; fail    is (lambda () ...)
-  ...)
-
-(ambeval <exp>
-         the-global-environment
-         (lambda (value fail) value)
-         (Lambda () 'failed))
-;|#
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;辅助函数
 ;; 判断是否以 tag开头
 (define (tagged-list? exp tag)
@@ -547,13 +410,6 @@ begin
                      (let-body exp))
         (let-vals exp)))
 
-
-
-;;....
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 4.1.3 求值器的数据结构
 ;; 谓词检测
 (define (true? x)
@@ -761,3 +617,110 @@ begin
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 启动求值器
 (driver-loop)
+
+#|
+4.3.1 amb和搜索
+
+(amb <e1> <e2> ... <en>)
+    (list (amb 1 2 3) (amb 'a 'b)) =>
+可能的返回结果：(1 a) (1 b) (2 a) (2 b) (3 a) (3 b)
+
+|#
+#|
+TODO  这个函数怎么实现啊
+;|#
+;(define (amb ...))
+
+#|
+;; (Amb) : 这一计算会流失败，且不会产生任何值
+;; 某个特定谓词必须为真
+(define (require p)
+  (if (not p) (amb)))
+
+
+;;
+(define (an-element-of items)
+  ;; 如果空表，则会失败
+  (require (not (null? items)))
+  ;; 返回表里的第一个，或其它元素
+  (amb (car items) (an-element-of (cdr items))))
+
+;; 任何一个>=n的数
+(define (an-integer-starting-from n)
+  (amb n (an-integer-starting-from (+ n 1))))
+;|#
+
+#|
+;; 练习4.35
+;; 返回两个限界之间的一个整数
+(define (an-integer-between m n)
+  (require (< m n))
+  (amb m (an-integer-between (+ m 1) n)))
+;; 寻找毕达哥拉斯三元组
+(define (a-pythagorean-triple-between low high)
+  (let ((i (an-integer-between low high)))         ;; 可以用let*解决？
+    (let ((j (an-integer-between i high)))
+      (let ((k (an-integer-between j high)))
+        (require (= (+ (* i i) (* j j)) (* k k)))
+        (list i j k)))))
+;|#
+
+
+#|
+
+4.3.2 非确定程序的实例
+
+(define (require p)
+  (if (not p) (amb)))
+
+(define (multiple-dwelling)
+  (let ((baker    (amb 1 2 3 4 5))
+        (cooper   (amb 1 2 3 4 5))
+        (fletcher (amb 1 2 3 4 5))
+        (miller   (amb 1 2 3 4 5))
+        (smith    (amb 1 2 3 4 5)))
+    (require
+     (distinct? (list baker cooper fletcher miller smith)))
+
+    (require (not (= baker 5)))
+    (require (not (= cooper 1)))
+    (require (not (= fletcher 5)))
+    (require (not (= fletcher 1)))
+    (require (> miller cooper))
+    (require (not (= (abs (- smith fletcher)) 1)))
+    (require (not (= (abs (- fletcher cooper)) 1)))
+    (list (list 'baker baker)
+          (list 'cooper cooper )
+          (list 'fletcher fletcher)
+          (list 'miller miller)
+          (list 'smith smith))))
+
+(define (distinct? items)
+  (cond [(null? items) true]
+        [(null? (cdr items)) true]
+        [(member (car items) (cdr items)) false]
+        [else (distinct? (cdr items))]))
+
+;|#
+;; 求值表达式，将产生下面的结果:
+;; ((baker 3) (cooper 2) (fletcher 4) (miller 5) (smith 1))
+
+#|
+自然语言的语法分析
+... ... 略
+;|#
+
+
+;; 执行过程的一般行形式是
+#|
+(lambda (env succeed fail)
+  ;; succeed is (lambda (value fail) ...)
+  ;; fail    is (lambda () ...)
+  ...)
+
+(ambeval <exp>
+         the-global-environment
+         (lambda (value fail) value)
+         (Lambda () 'failed))
+;|#
+
